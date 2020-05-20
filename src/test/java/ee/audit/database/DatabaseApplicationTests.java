@@ -29,7 +29,7 @@ class DatabaseApplicationTests {
 //  @Test
   void timeInsertsNew() {
     runScript("current_audit_fields_scripts.sql");
-    jdbcTemplate.execute("select public.create_audit_triggers('public', 'person');");
+    jdbcTemplate.execute("select loging_test_schema.create_audit_triggers('loging_test_schema', 'person');");
 
     long totalTime = totalTimeOfInsertions();
     System.out.println("Total time to insert persons: " + totalTime + "ms");
@@ -45,7 +45,7 @@ class DatabaseApplicationTests {
 
     runScript("create_person_table.sql");
     runScript("create_or_update_trigger.sql");
-    jdbcTemplate.execute("select create_or_update('public', 'person');");
+    jdbcTemplate.execute("select create_or_update('loging_test_schema', 'person');");
 
     long totalTime = totalTimeOfInsertions();
     System.out.println("Total time to insert persons with auditing: " + totalTime + "ms");
@@ -58,11 +58,11 @@ class DatabaseApplicationTests {
     String name = randomString();
     double amount = 0.434;
 
-    jdbcTemplate.execute(format("ALTER TABLE public.person ADD COLUMN amount NUMERIC(10, 2) NOT NULL;"));
-    jdbcTemplate.execute("select create_or_update('public', 'person');");
-    jdbcTemplate.execute(format("INSERT INTO public.person (name, amount) values ('%s', %s);", name, amount));
+    jdbcTemplate.execute(format("ALTER TABLE loging_test_schema.person ADD COLUMN amount NUMERIC(10, 2) NOT NULL;"));
+    jdbcTemplate.execute("select create_or_update('loging_test_schema', 'person');");
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name, amount) values ('%s', %s);", name, amount));
 
-    Double result = jdbcTemplate.queryForObject("SELECT amount FROM public_log.person_log WHERE name=?;", new Object[]{name}, Double.class);
+    Double result = jdbcTemplate.queryForObject("SELECT amount FROM loging_test_schema_log.person_log WHERE name=?;", new Object[]{name}, Double.class);
     assertThat(result).isEqualTo(0.43);
   }
 
@@ -71,8 +71,8 @@ class DatabaseApplicationTests {
     createTablesAndTriggers();
     String name = randomString();
 
-    jdbcTemplate.execute(format("INSERT INTO public.person (name) values ('%s');", name));
-    Map<String, String> result = jdbcTemplate.query(format("SELECT * FROM public_log.person_log WHERE name='%s';", name),
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name) values ('%s');", name));
+    Map<String, String> result = jdbcTemplate.query(format("SELECT * FROM loging_test_schema_log.person_log WHERE name='%s';", name),
         (ResultSet rs) -> {
           rs.next();
           return Map.of("name", rs.getString("name"),
@@ -90,9 +90,9 @@ class DatabaseApplicationTests {
     String name = randomString();
     String name_new = name + "_new";
 
-    jdbcTemplate.execute(format("INSERT INTO public.person (name) values ('%s');", name));
-    jdbcTemplate.execute(format("UPDATE public.person SET name='%s' WHERE name='%s';", name_new, name));
-    Map<String, String> result = jdbcTemplate.query(format("SELECT * FROM public_log.person_log WHERE name='%s';", name_new),
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name) values ('%s');", name));
+    jdbcTemplate.execute(format("UPDATE loging_test_schema.person SET name='%s' WHERE name='%s';", name_new, name));
+    Map<String, String> result = jdbcTemplate.query(format("SELECT * FROM loging_test_schema_log.person_log WHERE name='%s';", name_new),
         (ResultSet rs) -> {
           rs.next();
           return Map.of("name", rs.getString("name"),
@@ -109,10 +109,10 @@ class DatabaseApplicationTests {
     createTablesAndTriggers();
     String name = randomString();
 
-    jdbcTemplate.execute(format("INSERT INTO public.person (name) values ('%s');", name));
-    jdbcTemplate.execute(format("DELETE FROM public.person where name='%s';", name));
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name) values ('%s');", name));
+    jdbcTemplate.execute(format("DELETE FROM loging_test_schema.person where name='%s';", name));
 
-    List<String> result = jdbcTemplate.queryForList("SELECT operation FROM public_log.person_log WHERE name=? ORDER BY log_id;",
+    List<String> result = jdbcTemplate.queryForList("SELECT operation FROM loging_test_schema_log.person_log WHERE name=? ORDER BY log_id;",
         new Object[]{name}, String.class);
 
     assertThat(result).containsExactly("INSERT", "DELETE");
@@ -123,10 +123,10 @@ class DatabaseApplicationTests {
     createTablesAndTriggers();
     String name = randomString();
 
-    jdbcTemplate.execute(format("INSERT INTO public.person (name) values ('%s');", name));
-    jdbcTemplate.execute(format("DELETE FROM public.person where name='%s';", name));
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name) values ('%s');", name));
+    jdbcTemplate.execute(format("DELETE FROM loging_test_schema.person where name='%s';", name));
 
-    String result = jdbcTemplate.queryForObject("SELECT name FROM public_log.person_log WHERE operation='DELETE' ORDER BY log_id;"
+    String result = jdbcTemplate.queryForObject("SELECT name FROM loging_test_schema_log.person_log WHERE operation='DELETE' ORDER BY log_id;"
         , String.class);
 
     assertThat(result).isEqualTo(name);
@@ -141,10 +141,22 @@ class DatabaseApplicationTests {
     String account = randomString();
     Double amount = 0.65;
 
-    jdbcTemplate.execute(format("INSERT INTO public.person (name) values ('%s');", name));
-    jdbcTemplate.execute(format("INSERT INTO public.transaction (account, amount) values ('%s', %s);", account, amount));
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name) values ('%s');", name));
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.transaction (account, amount) values ('%s', %s);", account, amount));
 
     // Should not produce exception.
+  }
+
+  @Test
+  void shouldThrowErrorWhenNoAuditFieldsPresentWhenInserting() {
+    createTablesAndTriggers();
+    createTransactionTable();
+    String name = randomString();
+    String account = randomString();
+    Double amount = 0.65;
+
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name) values ('%s');", name));
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.transaction (account, amount) values ('%s', %s);", account, amount));
   }
 
   @Test
@@ -185,14 +197,14 @@ class DatabaseApplicationTests {
   }
 
   private void createTablesAndTriggers() {
-    runScript("create_or_update_trigger.sql");
     runScript("create_person_table.sql");
-    jdbcTemplate.execute("select create_or_update('public', 'person');");
+    runScript("create_or_update_trigger.sql");
+    jdbcTemplate.execute("select create_or_update('loging_test_schema', 'person');");
   }
 
   private void createTransactionTable() {
     runScript("create_transaction_table.sql");
-    jdbcTemplate.execute("select create_or_update('public', 'transaction');");
+    jdbcTemplate.execute("select create_or_update('loging_test_schema', 'transaction');");
   }
 
   private String randomString() {

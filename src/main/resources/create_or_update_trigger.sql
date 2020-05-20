@@ -1,4 +1,5 @@
-create schema if not exists public_log;
+create schema if not exists loging_test_schema_log;
+SET search_path TO loging_test_schema;
 
 create or replace FUNCTION create_or_update(schema_name_val varchar, table_name_val varchar) RETURNS void AS
 $$
@@ -36,7 +37,8 @@ BEGIN
         FOR EACH ROW
     EXECUTE PROCEDURE %I(); ', log_trigger_name, table_name_val, procedure_name);
 
-    EXECUTE (create_log_table
+    EXECUTE (create_audit_trigger
+                 || create_log_table
                  || block_update_trigger
                  || missing_columns_clauses
                  || create_log_table_index
@@ -262,8 +264,8 @@ $$ LANGUAGE PLPGSQL;
 CREATE OR REPLACE FUNCTION create_audit_fields_trigger(full_table_name_val varchar, schema_name_val varchar, table_name_val varchar) RETURNS varchar AS
 $create_audit_fields_trigger$
 DECLARE
-    trigger_name varchar = 'enforce_' || table_name_val || '_audit_triggers';
-    full_trigger_name varchar = schema_name_val || '.' ||'enforce_' || table_name_val || '_audit_triggers';
+    trigger_name      varchar = 'enforce_' || table_name_val || '_audit_triggers';
+    full_trigger_name varchar = schema_name_val || '.' || 'enforce_' || table_name_val || '_audit_triggers';
 BEGIN
     return $$CREATE OR REPLACE FUNCTION $$ || full_trigger_name || $$()
             RETURNS trigger
@@ -296,3 +298,4 @@ END;
 $create_audit_fields_trigger$ LANGUAGE PLPGSQL;
 
 
+$$ LANGUAGE PLPGSQL;
