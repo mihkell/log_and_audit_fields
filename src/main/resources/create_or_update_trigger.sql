@@ -116,24 +116,24 @@ BEGIN
 END;
 $logtablepresent$ LANGUAGE PLPGSQL;
 
-create or replace FUNCTION log_table_present(schema_name_val varchar, tabel_name_val varchar) RETURNS bool AS
+create or replace FUNCTION log_table_present(schema_name_val varchar, table_name_val varchar) RETURNS bool AS
 $$
 BEGIN
     RETURN (select exists(
                            select information_schema.columns.column_name
                            from information_schema.columns
-                           where table_name = tabel_name_val
+                           where table_name = table_name_val
                              and table_schema = schema_name_val
                            limit 1));
 END;
 $$ LANGUAGE PLPGSQL;
 
-create or replace FUNCTION columns_array(schema_name_val varchar, tabel_name_val varchar) RETURNS varchar[] AS
+create or replace FUNCTION columns_array(schema_name_val varchar, table_name_val varchar) RETURNS varchar[] AS
 $$
 BEGIN
     RETURN (select array_agg(c.column_name::varchar)
             from information_schema.columns as c
-            where table_name = tabel_name_val
+            where table_name = table_name_val
               and table_schema = schema_name_val
             group by table_name);
 END;
@@ -195,13 +195,13 @@ begin
 END;
 
 $$ LANGUAGE PLPGSQL SECURITY DEFINER;
-create or replace FUNCTION add_columns_clause_if_missing(schema_name_val varchar, tabel_name_val varchar, column_name varchar,
+create or replace FUNCTION add_columns_clause_if_missing(schema_name_val varchar, table_name_val varchar, column_name varchar,
                                                          column_type varchar) RETURNS varchar AS
 $$
 DECLARE
-    full_log_table varchar = schema_name_val || '.' || tabel_name_val;
+    full_log_table varchar = schema_name_val || '.' || table_name_val;
 BEGIN
-    IF NOT history_table_does_have_column(schema_name_val, tabel_name_val, column_name)
+    IF NOT history_table_does_have_column(schema_name_val, table_name_val, column_name)
     THEN
         RETURN add_column(full_log_table, column_name, column_type);
     END IF;
@@ -218,14 +218,14 @@ END;
 
 $$ LANGUAGE PLPGSQL;
 
-create or replace FUNCTION history_table_does_have_column(schema_name_val varchar, tabel_name_val name, column_name_val varchar) RETURNS boolean AS
+create or replace FUNCTION history_table_does_have_column(schema_name_val varchar, table_name_val name, column_name_val varchar) RETURNS boolean AS
 $$
 BEGIN
     RETURN (select exists(
                            select
                            from information_schema.columns
                            where column_name = column_name_val
-                             and table_name = tabel_name_val
+                             and table_name = table_name_val
                              and table_schema = schema_name_val));
 END;
 
@@ -242,13 +242,13 @@ END;
 
 $$ LANGUAGE PLPGSQL;
 
-create or replace FUNCTION column_type(schema_name_val name, tabel_name_val name, column_name_val varchar) RETURNS varchar AS
+create or replace FUNCTION column_type(schema_name_val name, table_name_val name, column_name_val varchar) RETURNS varchar AS
 $$
 BEGIN
     RETURN (select udt_name
             from information_schema.columns
             where column_name = column_name_val
-              and table_name = tabel_name_val
+              and table_name = table_name_val
               and table_schema = schema_name_val);
 END;
 $$ LANGUAGE PLPGSQL;
