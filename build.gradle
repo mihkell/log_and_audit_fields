@@ -1,0 +1,26 @@
+plugins {
+    id 'org.springframework.boot' version '2.2.7.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.9.RELEASE'
+    id 'java'
+}
+
+group = 'ee.audit'
+version = '0.0.1-SNAPSHOT'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:2.1.2'
+    implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.12'
+
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
