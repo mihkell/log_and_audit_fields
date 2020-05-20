@@ -160,6 +160,21 @@ class DatabaseApplicationTests {
   }
 
   @Test
+  void shouldKeepColumnInLogTableWhenColumnRemoved() {
+    createTablesAndTriggers();
+    String name = randomString();
+    double amount = 0.434;
+
+    jdbcTemplate.execute(format("ALTER TABLE loging_test_schema.person ADD COLUMN amount NUMERIC(10, 2) NOT NULL;"));
+    jdbcTemplate.execute("select create_or_update('loging_test_schema', 'person');");
+    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name, amount) values ('%s', %s);", name, amount));
+    jdbcTemplate.execute(format("ALTER TABLE loging_test_schema.person DROP COLUMN amount"));
+
+    Double result = jdbcTemplate.queryForObject("SELECT amount FROM loging_test_schema_log.person_log WHERE name=?;", new Object[]{name}, Double.class);
+    assertThat(result).isEqualTo(0.43);
+  }
+
+  @Test
   @Disabled
   void shouldHaveLogCreatedByAndLogCreatedAtFields() {
 
