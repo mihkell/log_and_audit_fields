@@ -6,7 +6,6 @@ create TABLE loging_test_schema.transaction
     id   serial PRIMARY KEY,
     account varchar,
     amount numeric(10, 4),
-    created_at varchar,
     created_by varchar,
     modified_at varchar,
     created_by_db varchar,

@@ -267,35 +267,55 @@ DECLARE
     trigger_name      varchar = 'enforce_' || table_name_val || '_audit_triggers';
     full_trigger_name varchar = schema_name_val || '.' || 'enforce_' || table_name_val || '_audit_triggers';
 BEGIN
-    return $$CREATE OR REPLACE FUNCTION $$ || full_trigger_name || $$()
-            RETURNS trigger
-            LANGUAGE plpgsql
-            SECURITY DEFINER
-        AS $function$
-        BEGIN
-            IF TG_OP = 'INSERT'
-            THEN
-                NEW.created_by_db=SESSION_USER;
-                NEW.created_at=CURRENT_TIMESTAMP;
-                NEW.modified_at=CURRENT_TIMESTAMP;
-                NEW.modified_by_db=SESSION_USER;
-            ELSIF TG_OP = 'UPDATE'
-            THEN
-                NEW.modified_by_db=SESSION_USER;
-                NEW.modified_at=CURRENT_TIMESTAMP;
-                NEW.created_by_db=OLD.created_by_db;
-                NEW.created_at=OLD.created_at;
-                NEW.created_by=OLD.created_by;
-            END IF;
-            RETURN NEW;
-        END;
-        $function$
-        ;
-        DROP TRIGGER IF EXISTS $$ || trigger_name || $$ ON $$ || full_table_name_val || $$ ;
-        CREATE TRIGGER $$ || trigger_name || $$ BEFORE INSERT OR UPDATE
-            ON $$ || full_table_name_val || $$ FOR EACH ROW EXECUTE PROCEDURE public.$$ || trigger_name || $$();$$;
+
+    IF audit_fields_missing_present(schema_name_val, table_name_val) THEN
+      return $$CREATE OR REPLACE FUNCTION $$ || full_trigger_name || $$()
+              RETURNS trigger
+              LANGUAGE plpgsql
+              SECURITY DEFINER
+          AS $function$
+          BEGIN
+              IF TG_OP = 'INSERT'
+              THEN
+                  NEW.created_by_db=SESSION_USER;
+                  NEW.created_at=CURRENT_TIMESTAMP;
+                  NEW.modified_at=CURRENT_TIMESTAMP;
+                  NEW.modified_by_db=SESSION_USER;
+              ELSIF TG_OP = 'UPDATE'
+              THEN
+                  NEW.modified_by_db=SESSION_USER;
+                  NEW.modified_at=CURRENT_TIMESTAMP;
+                  NEW.created_by_db=OLD.created_by_db;
+                  NEW.created_at=OLD.created_at;
+                  NEW.created_by=OLD.created_by;
+              END IF;
+              RETURN NEW;
+          END;
+          $function$
+          ;
+          DROP TRIGGER IF EXISTS $$ || trigger_name || $$ ON $$ || full_table_name_val || $$ ;
+          CREATE TRIGGER $$ || trigger_name || $$ BEFORE INSERT OR UPDATE
+              ON $$ || full_table_name_val || $$ FOR EACH ROW EXECUTE PROCEDURE public.$$ || trigger_name || $$();$$;
+      END IF;
+      RAISE EXCEPTION 'All auditing fields not present!';
 END;
 $create_audit_fields_trigger$ LANGUAGE PLPGSQL;
 
+create or replace FUNCTION audit_fields_missing_present(schema_name_val varchar, table_name_val name) RETURNS boolean AS
+$$
+BEGIN
+    RETURN (select 5 =(
+                       select count(column_name)
+                       from information_schema.columns
+                       where table_name = table_name_val
+                         and table_schema = schema_name_val
+                         and (
+                               column_name = 'created_at'
+                               or column_name = 'created_by'
+                               or column_name = 'modified_at'
+                               or column_name = 'created_by_db'
+                               or column_name = 'modified_by_db'
+                           )));
+END;
 
 $$ LANGUAGE PLPGSQL;

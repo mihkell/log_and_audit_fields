@@ -3,6 +3,7 @@ package ee.audit.database;
 import static java.lang.String.format;
 import static java.time.ZoneOffset.UTC;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
@@ -15,9 +16,11 @@ import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 import org.apache.ibatis.io.Resources;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.UncategorizedSQLException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @SpringBootTest
@@ -150,50 +153,35 @@ class DatabaseApplicationTests {
   @Test
   void shouldThrowErrorWhenNoAuditFieldsPresentWhenInserting() {
     createTablesAndTriggers();
-    createTransactionTable();
-    String name = randomString();
-    String account = randomString();
-    Double amount = 0.65;
-
-    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.person (name) values ('%s');", name));
-    jdbcTemplate.execute(format("INSERT INTO loging_test_schema.transaction (account, amount) values ('%s', %s);", account, amount));
+    runScript("create_missing_fields_table.sql");
+    assertThatThrownBy( ()-> jdbcTemplate.execute("select create_or_update('loging_test_schema', 'transaction');"))
+        .hasMessageContaining("All auditing fields not present!")
+        .isInstanceOf( UncategorizedSQLException.class);
   }
 
   @Test
+  @Disabled
   void shouldHaveLogCreatedByAndLogCreatedAtFields() {
 
   }
 
 
   @Test
+  @Disabled
   void shouldModifiedCreatedByAndAtColumns() {
 
   }
 
   @Test
+  @Disabled
   void shouldCreateIndexOnPrimaryKeyColumnInLogTableAsWell() {
     // Don't know why index on log table is needed actually.
   }
 
   @Test
+  @Disabled
   void shouldNotAllowUpdatingLogTable() {
 
-  }
-
-  @Test
-  void shouldAddNumbericColumnWithPercision() {
-//    Isn't needed because it takes the value from new. And NEW already has the truncated value.
-//    fail("Should we add numeric variables to audit table as well?");
-  }
-
-  @Test
-  void shouldAlterTableTypeWhenBaseTableTypeAltered() {
-    fail("Should We Alter Table Type When Base Table Type Altered?");
-  }
-
-  @Test
-  void shouldWeAlterTableNameWhenColumnDeleted() {
-    fail("should we alter table name, when column deleted?");
   }
 
   private void createTablesAndTriggers() {
