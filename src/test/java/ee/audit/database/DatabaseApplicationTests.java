@@ -26,19 +26,18 @@ class DatabaseApplicationTests {
   @Autowired
   JdbcTemplate jdbcTemplate;
 
-  @Test
+//  @Test
   void timeInsertsNew() {
     runScript("current_audit_fields_scripts.sql");
     jdbcTemplate.execute("select public.create_audit_triggers('public', 'person');");
 
-//
-//    long totalTime = totalTimeOfInsertions();
-//    System.out.println("Total time to insert persons: " + totalTime + "ms");
-//
-//    createTablesAndTriggers();
-//
-//    totalTime = totalTimeOfInsertions();
-//    System.out.println("Total time to insert persons with auditing: " + totalTime + "ms");
+    long totalTime = totalTimeOfInsertions();
+    System.out.println("Total time to insert persons: " + totalTime + "ms");
+
+    createTablesAndTriggers();
+
+    totalTime = totalTimeOfInsertions();
+    System.out.println("Total time to insert persons with auditing: " + totalTime + "ms");
   }
 
   @Test
@@ -106,11 +105,6 @@ class DatabaseApplicationTests {
   }
 
   @Test
-  void shouldHaveLogCreatedByAndLogCreatedAtFields() {
-
-  }
-
-  @Test
   void shouldWriteToAuditWhenDelete() {
     createTablesAndTriggers();
     String name = randomString();
@@ -138,20 +132,6 @@ class DatabaseApplicationTests {
     assertThat(result).isEqualTo(name);
   }
 
-  @Test
-  void shouldModifiedCreatedByAndAtColumns() {
-
-  }
-
-  @Test
-  void shouldCreateIndexOnPrimaryKeyColumnInLogTableAsWell() {
-    // Don't know why index on log table is needed actually.
-  }
-
-  @Test
-  void shouldNotAllowUpdatingLogTable() {
-
-  }
 
   @Test
   void shouldCreateSeparateTriggerProceduresForSeparateTables() {
@@ -165,6 +145,27 @@ class DatabaseApplicationTests {
     jdbcTemplate.execute(format("INSERT INTO public.transaction (account, amount) values ('%s', %s);", account, amount));
 
     // Should not produce exception.
+  }
+
+  @Test
+  void shouldHaveLogCreatedByAndLogCreatedAtFields() {
+
+  }
+
+
+  @Test
+  void shouldModifiedCreatedByAndAtColumns() {
+
+  }
+
+  @Test
+  void shouldCreateIndexOnPrimaryKeyColumnInLogTableAsWell() {
+    // Don't know why index on log table is needed actually.
+  }
+
+  @Test
+  void shouldNotAllowUpdatingLogTable() {
+
   }
 
   @Test

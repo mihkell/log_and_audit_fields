@@ -16,12 +16,13 @@ DECLARE
     block_update_trigger    varchar = '';
     drop_trigger            varchar = '';
     drop_prodcedure         varchar = '';
+    create_audit_trigger    varchar = '';
     columns                 varchar[] ;
     procedure_name          varchar = table_name_val || '_change_trigger';
 BEGIN
     columns = columns_array(schema_name_val, table_name_val);
 
-    create_audit_trigger = create_audit_fields_trigger(full_table_name_val, schema_name_val, table_name_val);
+    create_audit_trigger = create_audit_fields_trigger(full_table_name, schema_name_val, table_name_val);
     create_log_table = create_missing_log_table(log_schema_name, log_table_name, full_log_table_name);
     block_update_trigger = block_update_on_log_table_trigger(log_table_name, full_log_table_name);
     create_log_table_index = log_table_index(full_log_table_name, log_table_name, full_table_name);
